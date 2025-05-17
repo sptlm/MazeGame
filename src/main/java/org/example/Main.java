@@ -23,6 +23,10 @@ public class Main{
 
 	private static String[][] gameState;
 
+	private static int currentLevel;
+
+	private static boolean[] completions = new boolean[Map.levels];
+
 	private static void move(int x, int y){
 		gameState[playerPos[0]][playerPos[1]] = Models.passModel;
 		playerPos[0] += y;
@@ -32,20 +36,26 @@ public class Main{
 	}
 
 	private static void chooseLevel(){
-		System.out.print(
-				"Выберите уровень:\n" +
-				"1. 10x10\n" +
-				"2. 20x20 untested\n" +
-				"3. 35x35\n" +
-				"4. 50x50 untested\n" );
+
+		System.out.print("Выберите уровень:\n");
+		for(int i = 1; i < Map.levels; ++i){
+			System.out.printf("%d. %dx%d %s\n", i, Map.getSize(i), Map.getSize(i), completions[i] ? "(Пройден)" : "(Не пройден)");
+		}
+
 		while (true) {
 			String inp = sc.next();
+			if (inp.equals("load")) {
+				load();
+				chooseLevel();
+				return;
+			}
 			try{
 				int level = Integer.parseInt(inp);
 				maze = Map.getMaze(level);
 				playerPos = Map.getPlayerPos(level);
 				endPos = Map.getEndPos(level);
 				size = Map.getSize(level);
+				currentLevel = level;
 
 				gameState = new String[size][size];
 				for(int i = 0;i<size;i++){
@@ -55,9 +65,10 @@ public class Main{
 				}
 				gameState[playerPos[0]][playerPos[1]] = Models.playerModel;
 				gameState[endPos[0]][endPos[1]] = Models.finishModel;
+				printGameField();
 
 			} catch (Exception e) {
-				System.out.println("Неверно введен номер уровня, или такой уровень не найден");
+				System.out.println("Такой уровень не найден");
 				continue;
             }
 			break;
@@ -113,11 +124,9 @@ public class Main{
 					break;
 				case ("save"):
 					save();
-					System.out.println("Игра сохранена");
 					break;
 				case ("load"):
 					load();
-					System.out.println("Игра загружена");
 					break;
 				case("exit"):
 					chooseLevel();
@@ -132,7 +141,11 @@ public class Main{
 			printGameField();
 
 			if (playerPos[0] == endPos[0] & playerPos[1] == endPos[1]) {
-				break;
+				completions[currentLevel] = true;
+				save();
+				printResult();
+				chooseLevel();
+				continue;
 			}
 		}
 
@@ -150,7 +163,7 @@ public class Main{
 
 	private static void printRules(){
 
-		System.out.println("Игра - Слепой лабиринт\n" +
+		System.out.print("Игра - Слепой лабиринт\n" +
 				Models.playerModel + " - игрок\n" +
 				Models.finishModel + " - финиш\n" +
 				Models.passModel + " - пройденная клетка\n" +
@@ -165,7 +178,7 @@ public class Main{
 				"save - сохранить игру\n" +
 				"load - загрузить сохранение\n" +
 				"rules - прочитать правила\n" +
-				"exit - вернуться к выбору уровня(не забудь сохраниться)");
+				"exit - вернуться к выбору уровня(не забудь сохраниться)\n");
 
 		System.out.printf("Введи любой символ чтобы продолжить...\n");;
 		sc.next();
@@ -173,9 +186,11 @@ public class Main{
 	private static void printResult(){
 		long endTime = System.currentTimeMillis();
 
-		System.out.printf("Лабиринт пройден за %d шагов \n",stepCount);
-		System.out.printf("Затраченное время: %d секунд\n",(endTime-startTime)/1000);;
-		System.out.printf("Введи любой символ чтобы закрыть программу...\n");;
+		System.out.printf("Лабиринт %s пройден за %d шага(-ов) \n", currentLevel, stepCount);
+		System.out.printf("Затраченное время: %d секунд(-ы)\n",(endTime-startTime)/1000);;
+		//System.out.printf("Игра была автоматически сохранена\n");
+		System.out.printf("Введи любой символ чтобы перейти в меню уровней...\n");;
+
 		sc.next();
 	}
 
@@ -190,6 +205,8 @@ public class Main{
 		int stepCount;
 		long saveTime;
 		long startTime;
+		int currentLevel;
+		boolean[] completions;
 
 		public void updateState(){
 			maze = Main.maze;
@@ -199,6 +216,8 @@ public class Main{
 			size = Main.size;
 			stepCount = Main.stepCount;
 			startTime = Main.startTime;
+			currentLevel = Main.currentLevel;
+			completions = Main.completions;
 			saveTime = System.currentTimeMillis();
 		}
 	}
@@ -212,6 +231,7 @@ public class Main{
 				ObjectOutputStream oos = new ObjectOutputStream(fos)){
 			oos.writeObject(state);
 			oos.flush();
+			System.out.println("Игра сохранена");
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -226,10 +246,13 @@ public class Main{
 			playerPos = state.playerPos;
 			endPos = state.endPos;
 			stepCount = state.stepCount;
+			currentLevel = state.currentLevel;
+			completions = state.completions;
 			startTime = System.currentTimeMillis() - (state.saveTime - state.startTime);
+			System.out.println("Игра загружена");
 		}
 		catch (ClassNotFoundException | IOException e) {
-			throw new RuntimeException(e);
+			System.out.println("Сохранение не найдено");
 		}
 	}
 
@@ -237,6 +260,6 @@ public class Main{
 		printRules();
 		chooseLevel();
 		startGame();
-		printResult();
+
 	}
 }
