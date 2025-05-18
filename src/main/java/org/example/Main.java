@@ -65,7 +65,6 @@ public class Main{
 				}
 				gameState[playerPos[0]][playerPos[1]] = Models.playerModel;
 				gameState[endPos[0]][endPos[1]] = Models.finishModel;
-				printGameField();
 
 			} catch (Exception e) {
 				System.out.println("Такой уровень не найден");
@@ -145,6 +144,7 @@ public class Main{
 				save();
 				printResult();
 				chooseLevel();
+				printGameField();
 				continue;
 			}
 		}
